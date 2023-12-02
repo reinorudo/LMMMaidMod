@@ -1,0 +1,23 @@
+// OpenGUIPacket.java
+
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
+
+public class OpenGUIPacket {
+    public OpenGUIPacket() {}
+
+    public static void encode(OpenGUIPacket packet, PacketBuffer buffer) {}
+
+    public static OpenGUIPacket decode(PacketBuffer buffer) {
+        return new OpenGUIPacket();
+    }
+
+    public static void handle(OpenGUIPacket packet, Supplier<NetworkEvent.Context> context) {
+        NetworkEvent.Context ctx = context.get();
+        ctx.enqueueWork(() -> {
+            // クライアント側でGUIを開く処理を行う
+            CustomChatGUI.openCustomChatGUI();
+        });
+        ctx.setPacketHandled(true);
+    }
+}

@@ -1,0 +1,12 @@
+// MyPacketHandler.java
+
+import net.minecraft.entity.Entity;
+import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fml.network.PacketDistributor;
+
+public class MyPacketHandler {
+    public static void sendOpenGUIPacket(Entity entity) {
+        // サーバー側で実行される処理
+        MyModPacketHandler.INSTANCE.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> entity), new OpenGUIPacket());
+    }
+}
