@@ -1,0 +1,38 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "#IT",
+        "ELE",
+        "KBC"
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:egg"
+        },
+        "I": {
+            "item": "minecraft:iron_helmet"
+        },
+        "T": {
+            "tag": "lmmmaidmod:maid_spawnegg_tag3"
+        },
+        "E": {
+            "item": "minecraft:ender_eye"
+        },
+        "L": {
+            "item": "minecraft:totem_of_undying"
+        },
+        "K": {
+            "tag": "lmmmaidmod:maid_spawnegg_tag2"
+        },
+        "B": {
+            "item": "minecraft:bone"
+        },
+        "C": {
+            "tag": "lmmmaidmod:maid_spawnegg_tag1"
+        }
+    },
+    "result": {
+        "item": "lmmmaid:lmmmaid_egg",
+        "count": 1
+    }
+}

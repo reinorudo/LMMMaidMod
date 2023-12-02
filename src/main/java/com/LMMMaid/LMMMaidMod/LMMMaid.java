@@ -11,7 +11,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 @Mod(LMMMaid.MOD_ID)
 public class LMMMaid{
 
-    public static final String MOD_ID = "lmmmaid";
+    public static final String MOD_ID = "lmmmaid";//変更時はjsonも変えること
     public static final ItemGroup LMMMAID_TAB = new LMMMaidTab();                                                       //crative tab constracter
 
     public LMMMaid() {
@@ -19,4 +19,5 @@ public class LMMMaid{
         LMMMaidEntityTypes.REGISTER.register(bus);
     }
 
+    
 }
