@@ -6,10 +6,14 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.text.ITextProperties;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.Style;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.LMMMaid.LMMMaidMod.entity.LMMMaidEntity;
 import com.mojang.blaze3d.matrix.MatrixStack;
@@ -18,6 +22,7 @@ public class CustomChatGUI extends Screen {
     private TextFieldWidget textField;
     private List<String> maidChatHistory;
     private List<String> playerChatHistory;
+    private List<String> combinedChat; // 追加: combined chat history as a member variable
     private int scrollOffset;
     private int visibleLines;
 
@@ -25,8 +30,9 @@ public class CustomChatGUI extends Screen {
         super(new StringTextComponent("Custom Chat"));
         this.playerChatHistory = new ArrayList<>();
         this.maidChatHistory = new ArrayList<>();
+        this.combinedChat = new ArrayList<>(); // 初期化
         this.scrollOffset = 0;
-        this.visibleLines = 100;//最大表示行数
+        this.visibleLines = 1000;//最大表示行数
     }
 
     @Override
@@ -34,6 +40,7 @@ public class CustomChatGUI extends Screen {
         this.textField = new TextFieldWidget(this.font, this.width / 2 - 100, this.height - 30, 200, 20, new StringTextComponent(""));
         this.addButton(new Button(this.width / 2 + 104, this.height - 31, 50, 20, new StringTextComponent("Send"), button -> this.sendMessagePlayer()));
         this.textField.setFocus(true);
+        this.textField.setMaxLength(1000); // 文字数制限を設定
 
         int closeButtonWidth = 20;
         int closeButtonHeight = 20;
@@ -44,8 +51,8 @@ public class CustomChatGUI extends Screen {
 
     }
 
-    private List<String> combineChat() {
-        List<String> combinedChat = new ArrayList<>();
+    private void combineChat() {
+        combinedChat.clear(); // リストをクリアして新しい履歴で更新
         int maxLength = Math.max(playerChatHistory.size(), maidChatHistory.size());
     
         for (int i = 0; i < maxLength; i++) {
@@ -56,10 +63,6 @@ public class CustomChatGUI extends Screen {
                 combinedChat.add("YOU : " + playerChatHistory.get(i));
             }
         }
-    
-        this.scrollOffset = 0; // スクロールをリセットして最下部に表示
-    
-        return combinedChat;
     }
     
     
@@ -88,75 +91,49 @@ public class CustomChatGUI extends Screen {
     }
 
     @Override
-    public void render(MatrixStack matrixStack,int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(matrixStack);
-        List<String> combinedChat = combineChat();
-        int chatY = this.height - 50;
-        int startLine = Math.max(0, combinedChat.size() - this.visibleLines - this.scrollOffset);
-        int endLine = Math.min(combinedChat.size(), startLine + this.visibleLines);
+    public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+        this.renderBackground(matrixStack); // 背景を描画
+        this.combineChat(); // 組み合わせたチャット履歴を更新
+        int chatY = this.height - 50; // チャットを表示する初期Y座標
+        // 表示開始行と終了行を計算
+        int startLine = Math.max(0, this.combinedChat.size() - this.visibleLines - this.scrollOffset);
+        int endLine = Math.min(this.combinedChat.size() - this.scrollOffset, startLine + this.visibleLines);
+    
 
         for (int i = startLine; i < endLine; i++) {
             String message = combinedChat.get(i);
-            int bgColor = i % 2 == 0 ? 0x00FF00 : 0x888888;// デフォルトの背景色
+            int bgColor = message.startsWith("MAID : ") ? 0x80888888 : 0x8000FF00;
 
-            // メイドの発言をグレーの背景色に変更
-            if (message.startsWith("MAID : ")) {
-                bgColor = 0x888888; // グレーの背景色
-            } else if (message.startsWith("YOU : ")) {
-                bgColor = 0x00FF00; // 自分の発言を緑の背景色に変更
+            // ITextPropertiesのリストを取得してStringに変換
+            List<ITextProperties> lines = this.font.getSplitter().splitLines(message, this.width - 16, Style.EMPTY);
+            List<String> stringLines = lines.stream().map(ITextProperties::getString).collect(Collectors.toList());
+            Collections.reverse(stringLines); // 逆順にして上から描画
+
+            for (String line : stringLines) {
+                int lineLength = this.font.width(line); // テキストの長さを取得
+                // ここで背景を描画します。+4 と +2 は余白のための調整値です。
+                AbstractGui.fill(matrixStack, 8, chatY - this.font.lineHeight, 8 + lineLength + 4, chatY, bgColor);
+                this.font.draw(matrixStack, line, 10, chatY - this.font.lineHeight, 0xFFFFFF); // テキストを描画
+                chatY -= this.font.lineHeight; // 次の行のY座標を更新
             }
-
-            int wrapWidth = this.width - 16; // 折り返しの幅
-
-            if (this.font.width(message) > wrapWidth) {
-                List<String> lines = new ArrayList<>();
-                int lastIndex = 0;
-                int lastWrapIndex = 0;
-                while (lastIndex < message.length()) {
-                    if (this.font.width(message.substring(lastWrapIndex, lastIndex)) > wrapWidth) {
-                        String line = message.substring(lastWrapIndex, lastIndex);
-                        lines.add(line);
-                        lastWrapIndex = lastIndex;
-                    }
-                    lastIndex++;
-                }
-                if (lastWrapIndex < message.length()) {
-                    String lastLine = message.substring(lastWrapIndex);
-                    lines.add(lastLine);
-                }
-            
-                // Reverse the lines and render
-                Collections.reverse(lines);
-                for (String line : lines) {
-                    AbstractGui.fill(matrixStack, 8, chatY - this.font.lineHeight - 2, this.width - 8, chatY + 2, bgColor);
-                    this.font.drawShadow(matrixStack, line, 10, chatY, 0xFFFFFF);
-                    chatY -= this.font.lineHeight;
-                }
-            } else {
-                AbstractGui.fill(matrixStack, 8, chatY - this.font.lineHeight - 2, this.width - 8, chatY + 2, bgColor);
-                this.font.drawShadow(matrixStack, message, 10, chatY, 0xFFFFFF);
-                chatY -= this.font.lineHeight;
-            }
+         chatY -= 4; // メッセージ間の余白
         }
-        chatY -= 10; // プレイヤーのチャットと区切るために少し空白を作る
 
-
-        this.textField.render(matrixStack,mouseX, mouseY, partialTicks);
-        super.render(matrixStack, mouseX, mouseY, partialTicks);
-        
+        this.textField.render(matrixStack, mouseX, mouseY, partialTicks); // テキストフィールドを描画
+        super.render(matrixStack, mouseX, mouseY, partialTicks); // その他の要素を描画
     }
+
+
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int totalLines = this.playerChatHistory.size() + this.maidChatHistory.size();
-        int maxVisibleLines = this.visibleLines;
-    
-        if (totalLines > maxVisibleLines) {
-            int scrollAmount = (int) delta;
-            this.scrollOffset = Math.max(0, Math.min(totalLines - maxVisibleLines, this.scrollOffset - scrollAmount));
-        }
+        int scrollAmount = (int) delta; // スクロールの方向と量を示す（通常、1 または -1）
+        // スクロールオフセットを更新
+        this.scrollOffset = Math.max(0, Math.min(this.scrollOffset - scrollAmount, Math.max(0, this.combinedChat.size() - this.visibleLines)));
         return true;
-    }
+}
+    
+
     
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
